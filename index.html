@@ -270,9 +270,16 @@ body.admin-login-open .admin-modal{display:grid}
 /* ===== SUPABASE CONFIG =====
    Dán 2 giá trị bạn lấy từ Supabase vào đây.
 */
-var SUPABASE_URL = "https://znxvssdtvkkgmkhrgjvk.supabase.co/rest/v1/";
+var SUPABASE_URL = "https://znxvssdtvkkgmkhrgjvk.supabase.co";
 var SUPABASE_KEY = "sb_publishable_vaac5GxwIxJKSImfB0imsw_Ody8f-Lj";
-var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var supabaseClient=null;
+try{
+  if(window.supabase&&window.supabase.createClient){
+    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  }
+}catch(e){
+  console.error("Supabase init failed:",e);
+}
 
 var RM=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
 var S={name:"Bá sàn mini",members:[],subs:[],docs:[],views:0,logo:""};
@@ -297,11 +304,41 @@ function body(k,x){var h=hue(x.a||"");
   return ['<span class="ic">✦</span><div class="main"><div class="t">'+link(x.a,x.c)+'</div><div class="m">'+esc(x.b||"Chưa ghi người nộp")+' · nộp ngày '+esc(x.d||"")+'</div></div>',h]
 }
 function count(el,to){var from=+el.dataset.v||0;el.dataset.v=to;if(RM||from===to){el.textContent=to;return}var t0=performance.now();(function f(t){var p=Math.min((t-t0)/700,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0)}
-function render(){["members","docs","subs"].forEach(function(k){var a=S[k]||[],el=document.getElementById("l-"+k);el.innerHTML=a.length?a.map(function(x,i){var r=body(k,x),isNew=fresh&&fresh.k===k&&fresh.i===i;return '<div class="card'+(first||isNew?' in':'')+'" style="--h:'+r[1]+';--dl:'+(first?i*0.07:0)+'s"><button class="x admin-only" data-del="'+k+':'+i+'" aria-label="Xóa">×</button><div class="row">'+r[0]+'</div></div>'}).join(""):'<div class="empty"><i>'+EM[k][0]+'</i>'+EM[k][1]+'</div>';count(document.getElementById("c-"+k),a.length)});var st=document.getElementById("stack");st.innerHTML=S.members.slice(0,6).map(function(x,i){return '<span style="--h:'+hue(x.a||"")+';--k:'+i+'" title="'+esc(x.a||"")+'">'+(x.p?'<img src="'+esc(x.p)+'" alt="">':esc((x.a||"").trim()[0]||"?").toUpperCase()))+'</span>'}).join("")+(S.members.length>6?'<span class="more" style="--k:6">+'+(S.members.length-6)+'</span>':"");count(document.getElementById("c-views"),S.views||0);fresh=null;first=false;applyRole()}
+function render(){
+  ["members","docs","subs"].forEach(function(k){
+    var a=S[k]||[],el=document.getElementById("l-"+k);
+    if(!el)return;
+    if(a.length){
+      el.innerHTML=a.map(function(x,i){
+        var r=body(k,x);
+        var isNew=fresh&&fresh.k===k&&fresh.i===i;
+        return '<div class="card'+(first||isNew?' in':'')+'" style="--h:'+r[1]+';--dl:'+(first?i*0.07:0)+'s">'
+          +'<button class="x admin-only" data-del="'+k+':'+i+'" aria-label="Xóa">×</button>'
+          +'<div class="row">'+r[0]+'</div></div>';
+      }).join("");
+    }else{
+      el.innerHTML='<div class="empty"><i>'+EM[k][0]+'</i>'+EM[k][1]+'</div>';
+    }
+    count(document.getElementById("c-"+k),a.length);
+  });
 
-async function loadContent(){var r=await supabaseClient.from("site_content").select("id,name,members,docs,subs,views,logo").eq("id","main").maybeSingle();if(r.error){console.error(r.error);toast("Không tải được dữ liệu");return false}if(!r.data){toast("Chưa có dữ liệu trang");return false}S={name:r.data.name||"Tên nhóm của bạn",members:r.data.members||[],docs:r.data.docs||[],subs:r.data.subs||[],views:Number(r.data.views||0),logo:r.data.logo||""};var n=document.getElementById("name");n.textContent=S.name;document.title=S.name;syncName();lt();render();return true}
+  var st=document.getElementById("stack");
+  if(st){
+    st.innerHTML=S.members.slice(0,6).map(function(x,i){
+      var avatar=x.p?'<img src="'+esc(x.p)+'" alt="">':esc(((x.a||"").trim()[0]||"?").toUpperCase());
+      return '<span style="--h:'+hue(x.a||"")+';--k:'+i+'" title="'+esc(x.a||"")+'">'+avatar+'</span>';
+    }).join("")+(S.members.length>6?'<span class="more" style="--k:6">+'+(S.members.length-6)+'</span>':"");
+  }
+
+  count(document.getElementById("c-views"),S.views||0);
+  fresh=null;
+  first=false;
+  applyRole();
+}
+
+async function loadContent(){if(!supabaseClient){render();return false}var r=await supabaseClient.from("site_content").select("id,name,members,docs,subs,views,logo").eq("id","main").maybeSingle();if(r.error){console.error(r.error);toast("Không tải được dữ liệu");return false}if(!r.data){toast("Chưa có dữ liệu trang");return false}S={name:r.data.name||"Tên nhóm của bạn",members:r.data.members||[],docs:r.data.docs||[],subs:r.data.subs||[],views:Number(r.data.views||0),logo:r.data.logo||""};var n=document.getElementById("name");n.textContent=S.name;document.title=S.name;syncName();lt();render();return true}
 async function save(){if(!isAdmin){toast("Chỉ Admin mới được chỉnh sửa");return false}var r=await supabaseClient.from("site_content").update({name:S.name,members:S.members,docs:S.docs,subs:S.subs,views:S.views,logo:S.logo,updated_at:new Date().toISOString()}).eq("id","main");if(r.error){console.error(r.error);toast("Không lưu được dữ liệu");return false}return true}
-async function addView(){var r=await supabaseClient.rpc("increment_views");if(!r.error){S.views=Number(r.data||S.views+1);count(document.getElementById("c-views"),S.views)}}
+async function addView(){if(!supabaseClient)return;var r=await supabaseClient.rpc("increment_views");if(!r.error){S.views=Number(r.data||S.views+1);count(document.getElementById("c-views"),S.views)}}
 async function updateRole(){if(!session){isAdmin=false;return}var r=await supabaseClient.from("profiles").select("role").eq("id",session.user.id).maybeSingle();isAdmin=!!(r.data&&r.data.role==="admin")}
 function applyRole(){document.body.classList.toggle("auth-ready",!!session);document.body.classList.toggle("authenticated",!!session);document.getElementById("userbox").style.display=isAdmin?"flex":"none";document.getElementById("userEmail").textContent=session?.user?.email||"";document.getElementById("userRole").textContent="ADMIN";var n=document.getElementById("name");n.contentEditable=isAdmin?"plaintext-only":"false";document.querySelectorAll(".admin-only").forEach(function(x){x.style.display=isAdmin?"":"none"})}
 function syncName(){var t=document.getElementById("name").textContent.trim()||"Nhóm";document.getElementById("bn").textContent=t;document.getElementById("gn").textContent=t}
@@ -313,7 +350,7 @@ n.addEventListener("input",async function(){if(!isAdmin)return;S.name=n.textCont
 document.getElementById("adminLoginBtn").addEventListener("click",function(){document.body.classList.add("admin-login-open");document.getElementById("adminModal").setAttribute("aria-hidden","false");setTimeout(function(){document.getElementById("loginEmail").focus()},50)});
 document.getElementById("adminClose").addEventListener("click",function(){document.body.classList.remove("admin-login-open");document.getElementById("adminModal").setAttribute("aria-hidden","true")});
 document.getElementById("adminModal").addEventListener("click",function(e){if(e.target===this){document.body.classList.remove("admin-login-open");this.setAttribute("aria-hidden","true")}});
-document.getElementById("loginBtn").addEventListener("click",async function(){var email=document.getElementById("loginEmail").value.trim(),pass=document.getElementById("loginPass").value,msg=document.getElementById("loginMsg");if(!email||!pass){msg.textContent="Nhập email và mật khẩu.";return}msg.textContent="Đang đăng nhập...";var r=await supabaseClient.auth.signInWithPassword({email:email,password:pass});if(r.error){msg.textContent="Đăng nhập thất bại.";return}await updateRole();if(!isAdmin){msg.textContent="Tài khoản này không có quyền Admin.";await supabaseClient.auth.signOut();return}msg.textContent="Đăng nhập thành công.";document.body.classList.remove("admin-login-open");document.getElementById("adminModal").setAttribute("aria-hidden","true");toast("Đã đăng nhập Admin");applyRole();render()});
+document.getElementById("loginBtn").addEventListener("click",async function(){var email=document.getElementById("loginEmail").value.trim(),pass=document.getElementById("loginPass").value,msg=document.getElementById("loginMsg");if(!supabaseClient){msg.textContent="Chưa kết nối được Supabase.";return}if(!email||!pass){msg.textContent="Nhập email và mật khẩu.";return}msg.textContent="Đang đăng nhập...";var r=await supabaseClient.auth.signInWithPassword({email:email,password:pass});if(r.error){msg.textContent="Đăng nhập thất bại.";return}await updateRole();if(!isAdmin){msg.textContent="Tài khoản này không có quyền Admin.";await supabaseClient.auth.signOut();return}msg.textContent="Đăng nhập thành công.";document.body.classList.remove("admin-login-open");document.getElementById("adminModal").setAttribute("aria-hidden","true");toast("Đã đăng nhập Admin");applyRole();render()});
 document.getElementById("loginPass").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("loginBtn").click()});
 document.getElementById("logoutBtn").addEventListener("click",async function(){await supabaseClient.auth.signOut()});
 
@@ -332,7 +369,14 @@ var avf=document.getElementById("avf"),editI=-1;avf.addEventListener("change",fu
 document.getElementById("m3").addEventListener("change",function(){if(!isAdmin){this.value="";toast("Đăng nhập Admin để sửa");return}var f=this.files[0];if(f)readImg(f,function(d){document.getElementById("pkv").innerHTML='<img src="'+d+'" alt="">';document.getElementById("m3").dataset.preview=d})});
 var lf=document.getElementById("lgf"),pa=document.getElementById("pa");pa.addEventListener("click",function(){if(!isAdmin){toast("Đăng nhập Admin để đổi logo");return}lf.value="";lf.click()});pa.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();pa.click()}});lf.addEventListener("change",function(){if(!isAdmin)return;var f=lf.files[0];if(f)readImg(f,function(d){S.logo=d;save().then(function(){lt();toast("Đã đổi logo nhóm")})})});
 
-document.getElementById("enter").addEventListener("click",function(){document.body.classList.add("entered");scrollTo(0,0);burst(innerWidth/2,innerHeight/2);document.querySelectorAll(".rv").forEach(function(e){io.observe(e)});addView();setTimeout(place,60)});
+document.getElementById("enter").addEventListener("click",function(){
+  document.body.classList.add("entered");
+  try{scrollTo(0,0)}catch(e){}
+  try{burst(innerWidth/2,innerHeight/2)}catch(e){}
+  try{if(typeof io!=="undefined")document.querySelectorAll(".rv").forEach(function(e){io.observe(e)})}catch(e){}
+  try{addView()}catch(e){}
+  try{setTimeout(place,60)}catch(e){}
+});
 
 document.addEventListener("pointermove",function(e){if(e.pointerType!=="mouse"||RM)return;var c=e.target.closest&&e.target.closest(".card");if(!c)return;var r=c.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;c.style.setProperty("--mx",x+"px");c.style.setProperty("--my",y+"px");c.style.transform="perspective(700px) rotateX("+((y/r.height-.5)*-9)+"deg) rotateY("+((x/r.width-.5)*9)+"deg) translateY(-5px)"});document.addEventListener("pointerout",function(e){var c=e.target.closest&&e.target.closest(".card");if(c&&(!e.relatedTarget||!c.contains(e.relatedTarget)))c.style.transform=""});
 
@@ -341,9 +385,30 @@ var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isInter
 (function(){var $=function(i){return document.getElementById(i)},rnd=Math.random,c=$("bg"),g=c.getContext("2d"),W,H,ST=[],P=[],SH=[],SN=[],f=0,tx=0,ty=0,mx=0,my=0,ink="#f5f0ff";function init(){var d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*d;c.height=H*d;g.setTransform(d,0,0,d,0,0);ST=[];SN=[];for(var j=0,m=Math.min(42,Math.round(W/38));j<m;j++)SN.push({x:rnd()*W,y:rnd()*H,r:9+rnd()*15,v:.35+rnd()*.9,p:rnd()*6.28,o:.15+rnd()*.4});for(var i=0,n=Math.round(W*H/8000);i<n;i++)ST.push({x:rnd()*W,y:rnd()*H,r:.4+rnd()*1.5,t:rnd()*6.28,s:.01+rnd()*.03,z:rnd()})}function star(x,y,r){g.beginPath();g.moveTo(x,y-r);g.quadraticCurveTo(x,y,x+r,y);g.quadraticCurveTo(x,y,x,y+r);g.quadraticCurveTo(x,y,x-r,y);g.quadraticCurveTo(x,y,x,y-r);g.fill()}function draw(){if(f%90===0)ink=getComputedStyle(document.documentElement).getPropertyValue("--tx").trim()||ink;g.clearRect(0,0,W,H);tx+=(mx-tx)*.05;ty+=(my-ty)*.05;g.fillStyle=ink;ST.forEach(function(s){s.t+=s.s;g.globalAlpha=.08+.45*Math.abs(Math.sin(s.t));var x=s.x+tx*s.z*40,y=s.y+ty*s.z*40;if(s.r>1.6)star(x,y,s.r*2.2);else{g.beginPath();g.arc(x,y,s.r,0,6.283);g.fill()}});g.textAlign="center";g.textBaseline="middle";SN.forEach(function(s){if(!RM){s.y+=s.v;s.x+=Math.sin(s.y/45+s.p)*.45+tx*.6;if(s.y>H+24){s.y=-24;s.x=rnd()*W}if(s.x<-24)s.x=W+24;if(s.x>W+24)s.x=-24}g.globalAlpha=s.o;g.font=s.r+"px sans-serif";g.fillText("❅",s.x,s.y)});g.globalAlpha=1;f++;if(!RM)requestAnimationFrame(draw)}addEventListener("resize",function(){init();if(RM)draw()});init();draw()})();
 
 (async function(){
-  var sr=await supabaseClient.auth.getSession();session=sr.data.session;await updateRole();applyRole();await loadContent();
-  if(session)toast(isAdmin?"Đã đăng nhập Admin":"Tài khoản không có quyền chỉnh sửa");
-  supabaseClient.auth.onAuthStateChange(async function(event,s){session=s;if(!s){isAdmin=false;applyRole();return}await updateRole();applyRole();if(!isAdmin){await supabaseClient.auth.signOut();return}toast("Đã đăng nhập Admin");render()});
+  try{
+    if(supabaseClient){
+      var sr=await supabaseClient.auth.getSession();
+      session=sr.data.session;
+      await updateRole();
+      applyRole();
+      await loadContent();
+      if(session)toast(isAdmin?"Đã đăng nhập Admin":"Tài khoản không có quyền chỉnh sửa");
+      supabaseClient.auth.onAuthStateChange(async function(event,s){
+        session=s;
+        if(!s){isAdmin=false;applyRole();return}
+        await updateRole();applyRole();
+        if(!isAdmin){await supabaseClient.auth.signOut();return}
+        toast("Đã đăng nhập Admin");render();
+      });
+    }else{
+      applyRole();
+      render();
+    }
+  }catch(e){
+    console.error("Supabase startup failed:",e);
+    applyRole();
+    render();
+  }
 })();
 
 render();
