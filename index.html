@@ -197,6 +197,25 @@ body.admin-login-open .admin-modal{display:grid}
 @media(max-width:700px){.admin-login-btn{font-size:13px;padding:8px 10px}}
 
 @media(max-width:700px){.userbox .email{display:none}}
+
+.member-meta{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
+.member-meta .tag{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--bd);border-radius:999px;background:var(--ib);color:var(--mut);font-size:12px}
+.member-meta a{color:inherit;text-decoration:none}
+.member-meta a:hover{text-decoration:underline}
+.member-info-btn{margin-top:8px;border:1px solid var(--bd);background:var(--glass);color:var(--tx);padding:6px 10px;border-radius:999px;font:500 12px inherit;cursor:pointer}
+.member-info-btn:hover{background:var(--ib)}
+.member-modal{position:fixed;inset:0;z-index:130;display:none;place-items:center;padding:20px;background:rgba(8,5,15,.48);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+body.member-modal-open .member-modal{display:grid}
+.member-modal-card{width:min(460px,92vw);padding:24px;border:1px solid var(--bd);border-radius:28px;background:var(--glass);box-shadow:var(--sh)}
+.member-modal-card h3{margin:0 0 6px;font-size:26px}
+.member-modal-card .role{color:var(--mut);margin-bottom:16px}
+.member-detail{display:grid;gap:10px}
+.member-detail .line{padding:11px 14px;border:1px solid var(--bd);border-radius:16px;background:var(--ib)}
+.member-detail .label{display:block;color:var(--mut);font-size:12px;margin-bottom:2px}
+.member-detail .value{font-weight:600;overflow-wrap:anywhere}
+.member-detail a{color:inherit}
+.member-modal-close{float:right;border:0;background:transparent;color:var(--mut);font-size:26px;cursor:pointer}
+@media(max-width:700px){.member-modal-card{padding:20px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -247,7 +266,7 @@ body.admin-login-open .admin-modal{display:grid}
 </section>
 <section id="members" class="sec"><div class="wrap">
 <div class="rv"><h2>Thành viên</h2><p class="sub">Ai đang ở trong nhóm, và ai nộp nhiều bài nhất.</p></div>
-<div class="add rv admin-only"><label class="pick" title="Chọn ảnh đại diện (không bắt buộc)"><input type="file" id="m3" accept="image/*" aria-label="Chọn ảnh đại diện"><span id="pkv">＋</span></label><input id="m1" placeholder="Họ và tên"><input id="m2" placeholder="Vai trò (vd: Trưởng nhóm)"><button class="go" data-add="members">Thêm thành viên</button></div>
+<div class="add rv admin-only"><label class="pick" title="Chọn ảnh đại diện (không bắt buộc)"><input type="file" id="m3" accept="image/*" aria-label="Chọn ảnh đại diện"><span id="pkv">＋</span></label><input id="m1" placeholder="Họ và tên"><input id="m2" placeholder="Vai trò (vd: Trưởng nhóm)"><input id="m4" placeholder="Lớp (vd: 11A1)"><input id="m5" type="email" placeholder="Email"><input id="m6" placeholder="Link Facebook"><button class="go" data-add="members">Thêm thành viên</button></div>
 <div class="grid rv" id="l-members"></div>
 </div></section>
 <section id="docs" class="sec"><div class="wrap">
@@ -298,8 +317,15 @@ function toast(m){var t=document.getElementById("toast");t.textContent=m;t.class
 function burst(x,y){if(RM||!document.body.animate)return;for(var i=0;i<18;i++){var s=document.createElement("span");s.className="cf";s.style.left=x+"px";s.style.top=y+"px";s.style.background=["#a855f7","#ec4899","#22d3ee","#fff"][i%4];document.body.appendChild(s);var a=Math.random()*Math.PI*2,d=50+Math.random()*110;s.animate([{transform:"translate(0,0) rotate(0)",opacity:1},{transform:"translate("+Math.cos(a)*d+"px,"+(Math.sin(a)*d-50)+"px) rotate(540deg)",opacity:0}],{duration:700+Math.random()*300,easing:"cubic-bezier(.2,.7,.3,1)"}).onfinish=function(){this.effect.target.remove()}}}
 function readImg(file,cb){if(!file||!/^image\//.test(file.type)){toast("Hãy chọn file ảnh");return}var fr=new FileReader();fr.onload=function(){var im=new Image();im.onload=function(){var size=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=192;var g=c.getContext("2d");g.drawImage(im,(im.width-size)/2,(im.height-size)/2,size,size,0,0,192,192);cb(c.toDataURL("image/jpeg",.85))};im.src=fr.result};fr.readAsDataURL(file)}
 
-function body(k,x){var h=hue(x.a||"");
-  if(k==="members")return ['<span class="av">'+(x.p?'<img src="'+esc(x.p)+'" alt="">':esc((x.a||"").trim()[0]||"?").toUpperCase())+'<span class="cam">Đổi</span></span><div class="main"><div class="t">'+esc(x.a||"")+'</div><div class="m">'+esc(x.b||"Thành viên")+' · '+S.subs.filter(function(q){return (q.b||"").trim().toLowerCase()===(x.a||"").trim().toLowerCase()}).length+' bài nộp</div></div>',h];
+function body(k,x,i){var h=hue(x.a||"");
+  if(k==="members"){
+    var meta="";
+    if(x.l)meta+='<span class="tag">🏫 '+esc(x.l)+'</span>';
+    if(x.e)meta+='<span class="tag">✉ <a href="mailto:'+esc(x.e)+'">'+esc(x.e)+'</a></span>';
+    if(x.f)meta+='<span class="tag">ⓕ <a href="'+esc(url(x.f))+'" target="_blank" rel="noopener noreferrer">Facebook</a></span>';
+    var info='<button class="member-info-btn" data-member="'+i+'">Xem thông tin</button>';
+    return ['<span class="av">'+(x.p?'<img src="'+esc(x.p)+'" alt="">':esc((x.a||"").trim()[0]||"?").toUpperCase())+'<span class="cam">Đổi</span></span><div class="main"><div class="t">'+esc(x.a||"")+'</div><div class="m">'+esc(x.b||"Thành viên")+' · '+S.subs.filter(function(q){return (q.b||"").trim().toLowerCase()===(x.a||"").trim().toLowerCase()}).length+' bài nộp</div><div class="member-meta">'+meta+'</div>'+info+'</div>',h];
+  }
   if(k==="docs")return ['<span class="ic">❖</span><div class="main"><div class="t">'+link(x.a,x.b)+'</div><div class="m">Thêm ngày '+esc(x.d||"")+'</div></div>',h];
   return ['<span class="ic">✦</span><div class="main"><div class="t">'+link(x.a,x.c)+'</div><div class="m">'+esc(x.b||"Chưa ghi người nộp")+' · nộp ngày '+esc(x.d||"")+'</div></div>',h]
 }
@@ -354,10 +380,33 @@ document.getElementById("loginBtn").addEventListener("click",async function(){va
 document.getElementById("loginPass").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("loginBtn").click()});
 document.getElementById("logoutBtn").addEventListener("click",async function(){await supabaseClient.auth.signOut()});
 
+
+function openMemberInfo(i){
+  var x=S.members[i];
+  if(!x)return;
+  document.getElementById("memberModalName").textContent=x.a||"Thành viên";
+  document.getElementById("memberModalRole").textContent=x.b||"Thành viên";
+  var d="";
+  d+='<div class="line"><span class="label">Lớp</span><div class="value">'+esc(x.l||"Chưa cập nhật")+'</div></div>';
+  d+='<div class="line"><span class="label">Email</span><div class="value">'+(x.e?'<a href="mailto:'+esc(x.e)+'">'+esc(x.e)+'</a>':"Chưa cập nhật")+'</div></div>';
+  d+='<div class="line"><span class="label">Facebook</span><div class="value">'+(x.f?'<a href="'+esc(url(x.f))+'" target="_blank" rel="noopener noreferrer">'+esc(x.f)+'</a>':"Chưa cập nhật")+'</div></div>';
+  document.getElementById("memberModalDetail").innerHTML=d;
+  document.body.classList.add("member-modal-open");
+  document.getElementById("memberModal").setAttribute("aria-hidden","false");
+}
+function closeMemberInfo(){
+  document.body.classList.remove("member-modal-open");
+  document.getElementById("memberModal").setAttribute("aria-hidden","true");
+}
+document.getElementById("memberModalClose").addEventListener("click",closeMemberInfo);
+document.getElementById("memberModal").addEventListener("click",function(e){if(e.target===this)closeMemberInfo()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeMemberInfo()});
+
 document.addEventListener("click",async function(e){
+  var mi=e.target.closest("[data-member]");if(mi){openMemberInfo(+mi.dataset.member);return}
   var av=e.target.closest("[data-av]");if(av){return}
   var t=e.target.closest("[data-t]");if(t){e.preventDefault();var el=document.getElementById(t.dataset.t);if(el)window.scrollTo({top:t.dataset.t==="home"?0:el.getBoundingClientRect().top+scrollY,behavior:RM?"auto":"smooth"});return}
-  var a=e.target.closest("[data-add]");if(a){if(!isAdmin){toast("Bạn đang xem. Đăng nhập Admin để chỉnh sửa.");return}var k=a.dataset.add,r=a.getBoundingClientRect();if(k==="members"){if(!val("m1"))return bad("m1");S.members.push({a:val("m1"),b:val("m2")});clear(["m1","m2"])}if(k==="docs"){if(!val("d1"))return bad("d1");S.docs.push({a:val("d1"),b:val("d2"),d:today()});clear(["d1","d2"])}if(k==="subs"){if(!val("s1"))return bad("s1");S.subs.push({a:val("s1"),b:val("s2"),c:val("s3"),d:today()});clear(["s1","s2","s3"])}fresh={k:k,i:S[k].length-1};if(await save()){render();toast("Đã lưu");burst(r.left+r.width/2,r.top+r.height/2)}return}
+  var a=e.target.closest("[data-add]");if(a){if(!isAdmin){toast("Bạn đang xem. Đăng nhập Admin để chỉnh sửa.");return}var k=a.dataset.add,r=a.getBoundingClientRect();if(k==="members"){if(!val("m1"))return bad("m1");S.members.push({a:val("m1"),b:val("m2"),l:val("m4"),e:val("m5"),f:val("m6")});clear(["m1","m2","m4","m5","m6"])}if(k==="docs"){if(!val("d1"))return bad("d1");S.docs.push({a:val("d1"),b:val("d2"),d:today()});clear(["d1","d2"])}if(k==="subs"){if(!val("s1"))return bad("s1");S.subs.push({a:val("s1"),b:val("s2"),c:val("s3"),d:today()});clear(["s1","s2","s3"])}fresh={k:k,i:S[k].length-1};if(await save()){render();toast("Đã lưu");burst(r.left+r.width/2,r.top+r.height/2)}return}
   var d=e.target.closest("[data-del]");if(d){if(!isAdmin){toast("Bạn đang xem. Đăng nhập Admin để chỉnh sửa.");return}var p=d.dataset.del.split(":"),c=d.closest(".card");c.classList.add("out");setTimeout(async function(){S[p[0]].splice(+p[1],1);if(await save()){render();toast("Đã xóa")}},RM?0:260)}
 });
 
@@ -413,5 +462,15 @@ var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isInter
 
 render();
 </script>
+
+<div class="member-modal" id="memberModal" aria-hidden="true">
+  <div class="member-modal-card">
+    <button class="member-modal-close" id="memberModalClose" aria-label="Đóng">×</button>
+    <h3 id="memberModalName">Thông tin thành viên</h3>
+    <div class="role" id="memberModalRole"></div>
+    <div class="member-detail" id="memberModalDetail"></div>
+  </div>
+</div>
+
 </body>
 </html>
